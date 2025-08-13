@@ -61,6 +61,6 @@ class FloorPlanDataset(Dataset):
             target_img = Image.open(target_path).convert('L')
             target_tensor = self.transform_gray(target_img)
         else:
-            target_tensor = None
+            target_tensor = torch.zeros_like(traj_tensor)
 
         return cond_image, target_tensor, fname

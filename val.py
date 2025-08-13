@@ -2,11 +2,12 @@
 import os
 import argparse
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 import torchdiffeq
 from tqdm import tqdm
-import numpy as np
+import copy
 
 
 from torchcfm.conditional_flow_matching import (
@@ -22,7 +23,6 @@ import time
 
 TIME = time.strftime("%Y%m%d-%H%M%S")
 CHECKPOINT = "results/20250813-061722_sexpe/checkpoints/ckpt_epoch_150.pt"
-EXP = 5
 
 @torch.no_grad()
 def build_model(cfm_type, image_size, device, sigma=0.0):
@@ -98,6 +98,10 @@ def run_test(args):
     # ODE schedule
     t_span = torch.linspace(0.0, 1.0, args.ode_steps, device=device, dtype=torch.float32)
 
+    total_mae = 0.0
+    total_mse = 0.0
+    n_img = 0
+
     pred_dir = os.path.join(out_dir, "pred")
     gt_dir   = os.path.join(out_dir, "gt")
     os.makedirs(pred_dir, exist_ok=True)
@@ -105,9 +109,9 @@ def run_test(args):
     save_num = 0
     for idx, (cond_map, x1, fnames) in enumerate(tqdm(test_loader, desc="Test")):
         cond_map = cond_map.to(device).float()
-        x1 = x1.to(device).float()
+        x1       = x1.to(device).float()
         # create noise images
-        x0 = torch.randn_like(x1)
+        x0       = torch.randn_like(x1)
 
         def ode_fn(t, x):
             B  = x.shape[0]
@@ -119,25 +123,34 @@ def run_test(args):
         traj   = torchdiffeq.odeint(ode_fn, x0, t_span, atol=1e-4, rtol=1e-4, method="dopri5")
         x_pred = traj[-1]
 
+        mae = torch.mean(torch.abs(x_pred - x1)).item()
+        mse = torch.mean((x_pred - x1) ** 2).item()
+        total_mae += mae * x_pred.size(0)
+        total_mse += mse * x_pred.size(0)
+        n_img     += x_pred.size(0)
+
+
         if args.save_images:
             vis_pred = (x_pred * 0.5 + 0.5).clamp(0, 1)
+            vis_gt   = (x1     * 0.5 + 0.5).clamp(0, 1)
             for b in range(x_pred.size(0)):
                 save_image(vis_pred[b], os.path.join(pred_dir, f"{fnames[b]}"))
+                save_image(vis_gt[b],   os.path.join(gt_dir, f"{fnames[b]}"))
                 save_num += 1
                 if save_num >= 50:
                     args.save_images = False
                     break
 
+    avg_mae = total_mae / max(1, n_img)
+    avg_mse = total_mse / max(1, n_img)
+    print(f"[Test] MAE ([-1,1]): {avg_mae:.6f} | MSE ([-1,1]): {avg_mse:.6f}")
     
 
 def main():
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--test_floor_dir', default='Dataset_Scale100_SExPE/Selected_50_train/Target/')
-    # parser.add_argument('--test_heat_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_1/')
-    # parser.add_argument('--test_traj_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_2/')
-    parser.add_argument('--test_floor_dir', default=None)
-    parser.add_argument('--test_heat_dir',  default=f'Dataset_rw/exp{EXP}_gmap/Condition_1')
-    parser.add_argument('--test_traj_dir',  default=f'Dataset_rw/exp{EXP}_gmap/Condition_2')
+    parser.add_argument('--test_floor_dir', default='Dataset_Scale100_SExPE/Selected_50_train/Target/')
+    parser.add_argument('--test_heat_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_1/')
+    parser.add_argument('--test_traj_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_2/')
 
     parser.add_argument('--output_dir', default=f'./results_test/{TIME}/')
     parser.add_argument('--checkpoint', type=str, default=CHECKPOINT, help='path to ckpt .pt')
