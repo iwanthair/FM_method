@@ -212,7 +212,7 @@ def train(args):
                 'ema_state': ema_model.state_dict(),
                 'optim_state': optimizer.state_dict(),
                 'sched_state': scheduler.state_dict(),
-                # 'scaler_state': scaler.state_dict(),  # 若启用 AMP 再加
+                # 'scaler_state': scaler.state_dict(),
                 # 'ema_updates': ema_updates,
                 'args': vars(args),
             }

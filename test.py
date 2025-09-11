@@ -21,8 +21,9 @@ from dataloader import FloorPlanDataset
 import time
 
 TIME = time.strftime("%Y%m%d-%H%M%S")
-CHECKPOINT = "results/20250813-061722_sexpe/checkpoints/ckpt_epoch_150.pt"
-EXP = 5
+CHECKPOINT = "results/20250813-010347_sepe/checkpoints/ckpt_epoch_150.pt"
+TYPE = "sepe"
+EXP = 1
 
 @torch.no_grad()
 def build_model(cfm_type, image_size, device, sigma=0.0):
@@ -88,7 +89,7 @@ def run_test(args):
     ckpt = torch.load(args.checkpoint, map_location=device)
 
     if args.use_ema_for_eval and ("ema_state" in ckpt):
-        model.load_state_dict(ckpt["ema_state"])    # 直接用 EMA 覆盖
+        model.load_state_dict(ckpt["ema_state"])
     else:
         model.load_state_dict(ckpt["model_state"])
 
@@ -132,14 +133,11 @@ def run_test(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--test_floor_dir', default='Dataset_Scale100_SExPE/Selected_50_train/Target/')
-    # parser.add_argument('--test_heat_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_1/')
-    # parser.add_argument('--test_traj_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_2/')
     parser.add_argument('--test_floor_dir', default=None)
-    parser.add_argument('--test_heat_dir',  default=f'Dataset_rw/exp{EXP}_gmap/Condition_1')
-    parser.add_argument('--test_traj_dir',  default=f'Dataset_rw/exp{EXP}_gmap/Condition_2')
+    parser.add_argument('--test_heat_dir',  default=f'Dataset_rw/{TYPE}_exp{EXP}_gmap/Condition_1')
+    parser.add_argument('--test_traj_dir',  default=f'Dataset_rw/{TYPE}_exp{EXP}_gmap/Condition_2')
 
-    parser.add_argument('--output_dir', default=f'./results_test/{TIME}/')
+    parser.add_argument('--output_dir', default=f'./results_test/rw_exp{EXP}_{TYPE}_{TIME}/')
     parser.add_argument('--checkpoint', type=str, default=CHECKPOINT, help='path to ckpt .pt')
     parser.add_argument('--use_ema_for_eval', action='store_true', default=True)
     parser.add_argument('--ode_steps', type=int, default=50)

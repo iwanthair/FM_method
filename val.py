@@ -22,10 +22,11 @@ from dataloader import FloorPlanDataset
 import time
 
 TIME = time.strftime("%Y%m%d-%H%M%S")
+# CHECKPOINT = "results/20250813-010347_sepe/checkpoints/ckpt_epoch_150.pt"
 CHECKPOINT = "results/20250813-061722_sexpe/checkpoints/ckpt_epoch_150.pt"
 
 @torch.no_grad()
-def build_model(cfm_type, image_size, device, sigma=0.0):
+def build_model(image_size, device):
     in_ch = 1 + 4  # floor(1) + cond(4)
     model = UNetModelWrapper(
         dim=(in_ch, image_size, image_size),
@@ -37,20 +38,7 @@ def build_model(cfm_type, image_size, device, sigma=0.0):
         attention_resolutions="16",
         dropout=0.1,
     ).to(device)
-
-    if cfm_type == 'otcfm':
-        matcher = ExactOptimalTransportConditionalFlowMatcher(sigma=sigma)
-    elif cfm_type == 'icfm':
-        matcher = ConditionalFlowMatcher(sigma=sigma)
-    elif cfm_type == 'fm':
-        matcher = TargetConditionalFlowMatcher(sigma=sigma)
-    elif cfm_type == 'si':
-        matcher = VariancePreservingConditionalFlowMatcher(sigma=sigma)
-    elif cfm_type == 'sb-cfm':
-        matcher = SchrodingerBridgeConditionalFlowMatcher(sigma=sigma)
-    else:
-        raise ValueError(f"Unknown model {cfm_type}")
-    return model, matcher
+    return model
 
 @torch.no_grad()
 def run_test(args):
@@ -84,11 +72,11 @@ def run_test(args):
     # eval_model = load_checkpoint(args.checkpoint, device, model, True, args.use_ema_for_eval)
     # eval_model.eval().float()
 
-    model, _ = build_model(args.model, args.image_size, device, sigma=args.sigma)
+    model = build_model(args.image_size, device)
     ckpt = torch.load(args.checkpoint, map_location=device)
 
     if args.use_ema_for_eval and ("ema_state" in ckpt):
-        model.load_state_dict(ckpt["ema_state"])    # 直接用 EMA 覆盖
+        model.load_state_dict(ckpt["ema_state"])
     else:
         model.load_state_dict(ckpt["model_state"])
 
@@ -152,14 +140,12 @@ def main():
     parser.add_argument('--test_heat_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_1/')
     parser.add_argument('--test_traj_dir',  default='Dataset_Scale100_SExPE/Selected_50_train/Condition_2/')
 
-    parser.add_argument('--output_dir', default=f'./results_test/{TIME}/')
-    parser.add_argument('--checkpoint', type=str, default=CHECKPOINT, help='path to ckpt .pt')
+    parser.add_argument('--output_dir', default=f'./results_test/{TIME}_SExPE_train/')
+    parser.add_argument('--checkpoint', type=str, default=CHECKPOINT, help='path to ckpt.')
     parser.add_argument('--use_ema_for_eval', action='store_true', default=True)
     parser.add_argument('--ode_steps', type=int, default=50)
     parser.add_argument('--save_images', action='store_true', default=True)
 
-    parser.add_argument('--model', choices=['otcfm','icfm','sb-cfm','fm','si'], default='icfm')
-    parser.add_argument('--sigma', type=float, default=0.05)
     parser.add_argument('--image_size', type=int, default=128)
     parser.add_argument('--batch_size', type=int, default=1)
 

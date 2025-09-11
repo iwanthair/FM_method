@@ -5,8 +5,8 @@ from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import cv2
 
-TITLE = 'Palette SE PE Test'
-RESULT_PATH = 'results_test/20250813-172223/test/'
+TITLE = 'Palette SEPE Test'
+RESULT_PATH = 'results_test/20250911-145443_abl_traj_test/test'
 
 
 def predict_ssim(gt_img, pred_img):

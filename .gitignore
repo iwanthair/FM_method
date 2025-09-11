@@ -1,6 +1,8 @@
 **/__pycache__/
-Dataset_Scale100_SEPE/
-Dataset_Scale100_SExPE/
-results/
-results_test/
-Dataset_rw/
+Dataset_Scale100_SEPE/train
+Dataset_Scale100_SEPE/test
+Dataset_Scale100_SExPE/train
+Dataset_Scale100_SExPE/test
+results/*
+results_test/*
+Dataset_rw/*
