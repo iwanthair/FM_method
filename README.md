@@ -2,6 +2,10 @@
 
 A deep learning project implementing Conditional Flow Matching for WiFi-based indoor floor plan prediction. This project uses flow matching techniques to generate indoor layouts based on WiFi heatmaps and trajectories.
 
+## Experiment Results
+
+All the experiment results can be downloaded from the link: [Experiment Results](https://drive.google.com/drive/folders/1pF2kcEQtI5ZRlZ_g0hJ_k6cxHfXubIxY?usp=drive_link)
+
 ## Project Structure
 
 ### Core Training and Evaluation Files
